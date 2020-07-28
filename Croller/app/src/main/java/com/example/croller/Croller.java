@@ -29,6 +29,8 @@ public class Croller extends View {
     private Paint circlePaint, circlePaint2, linePaint, handlePaint, centerPaint;
     private float currdeg = 0, deg = 3, downdeg = 0;
 
+    private boolean isContinuous = false;
+
     private int backCircleColor = Color.parseColor("#222222");
     private int mainCircleColor = Color.parseColor("#000000");
     private int indicatorColor = Color.parseColor("#FFA036");
@@ -71,6 +73,21 @@ public class Croller extends View {
     private boolean startEventSent = false;
 
     RectF oval;
+
+    private onProgressChangedListener progressChangedListener;
+    private OnCrollerChangeListener crollerChangeListener;
+
+    public interface onProgressChangedListener {
+        void onProgressChanged(int progress);
+    }
+
+    public void setOnProgressChangedListener(onProgressChangedListener progressChangedListener) {
+        this.progressChangedListener = progressChangedListener;
+    }
+
+    public void setOnCrollerChangeListener(OnCrollerChangeListener crollerChangeListener) {
+        this.crollerChangeListener = crollerChangeListener;
+    }
 
     public Croller(Context context) {
         super(context);
@@ -196,83 +213,153 @@ public class Croller extends View {
         centerPaint.setColor(centerCircleColor);
 
         //--------------------------------//
-        int radius = (int) (Math.min(midx, midy) * ((float) 14.5 / 16));
 
-        if (sweepAngle == -1) {
-            sweepAngle = 360 - (2 * startOffset);
+        if (!isContinuous) {
+            startOffset2 = startOffset + 163;
+
+            linePaint.setStrokeWidth(indicatorWidth);
+
+            int radius = (int) (Math.min(midx, midy) * ((float) 14.5 / 16));
+
+            if (sweepAngle == -1) {
+                sweepAngle = 360 - (2 * startOffset);
+            }
+
+            if (mainCircleColor == -1) {
+                mainCircleRadius = radius * ((float) 11/15);
+            }
+            if (backCircleRadius == -1) {
+                backCircleRadius = radius * ((float) 13/15);
+            }
+            if (progressRadius == -1) {
+                progressRadius = radius;
+            }
+
+            float x,y;
+            float deg2 = Math.max(3, deg);
+            float deg3 = Math.min(deg, max + 2);
+            for (int i= (int)(deg2); i < max+3; i++) {
+                float tmp = ((float) startOffset2/360) + ((float) sweepAngle/360) * (float) i/(max);
+
+                x = midx + (float) (progressRadius*Math.sin(2*Math.PI*(1.0-tmp)));
+                y = midy + (float) (progressRadius*Math.cos(2*Math.PI*(1.0-tmp)));
+
+                if ( progressSecondaryCircleSize == -1) {
+                    canvas.drawCircle(x, y, ((float) radius/30 * ((float) 20/max)*((float) sweepAngle/270)), circlePaint);
+                }
+                else {
+                    canvas.drawCircle(x, y, progressSecondaryCircleSize, circlePaint);
+                }
+            }
+
+            for (int i=3; i<=deg3; i++) {
+                float tmp = ((float) startOffset2/360) + ((float) sweepAngle/360) * (float) i / (max);
+
+                x = midx + (float)(progressRadius * Math.sin(2*Math.PI*(1.0-tmp)));
+                y = midy + (float)(progressRadius * Math.cos(2*Math.PI*(1.0-tmp)));
+
+                if (progressPrimaryCircleSize == -1) {
+                    canvas.drawCircle(x, y, (progressRadius/15*((float) 20/max)*((float) sweepAngle / 270)), circlePaint2);
+                }
+                else {
+                    canvas.drawCircle(x, y, progressPrimaryCircleSize, circlePaint2);
+                }
+            }
+
+            float tmp2 = ((float) startOffset2/360) + ((float) sweepAngle/360) * deg/(max);
+
+            float x1 = midx + (float) (radius * ((float) 1/5) * Math.sin(2 * Math.PI * (1.0 - tmp2)));
+            float y1 = midy + (float) (radius * ((float) 1/5) * Math.cos(2 * Math.PI * (1.0 - tmp2)));
+            float x2 = midx + (float) (radius * Math.sin(2 * Math.PI * (1.0 - tmp2)));
+            float y2 = midy + (float) (radius * Math.cos(2 * Math.PI * (1.0 - tmp2)));
+
+            circlePaint.setColor(backCircleColor);
+            canvas.drawCircle(midx, midy, backCircleRadius, circlePaint);
+
+            circlePaint.setColor(mainCircleColor);
+            canvas.drawCircle(midx, midy, mainCircleRadius, circlePaint);
+
+            canvas.drawLine(x1, y1, x2, y2, linePaint);
         }
+        else {
+            int radius = (int) (Math.min(midx, midy) * ((float) 14.5 / 16));
 
-        if (mainCircleColor == -1) {
-            mainCircleRadius = radius * ((float) 11/15);
-        }
-        if (backCircleRadius == -1) {
-            backCircleRadius = radius * ((float) 13/15);
-        }
-        if (progressRadius == -1) {
-            progressRadius = radius;
-        }
-        if (handleCircleRadius == -1) {
-            handleCircleRadius = radius * ((float) 1/10);
-        }
-        if (centerCircleColor == -1) {
-            centerCircleRadius = radius * ((float) 3/5);
-        }
+            if (sweepAngle == -1) {
+                sweepAngle = 360 - (2 * startOffset);
+            }
 
-        circlePaint.setStrokeWidth(progressSecondaryStrokeWidth);
-        circlePaint.setStyle(Paint.Style.STROKE);
-        circlePaint2.setStrokeWidth(progressPrimaryStrokeWidth);
-        circlePaint2.setStyle(Paint.Style.STROKE);
-        linePaint.setStrokeWidth(indicatorWidth);
+            if (mainCircleColor == -1) {
+                mainCircleRadius = radius * ((float) 11/15);
+            }
+            if (backCircleRadius == -1) {
+                backCircleRadius = radius * ((float) 13/15);
+            }
+            if (progressRadius == -1) {
+                progressRadius = radius;
+            }
+            if (handleCircleRadius == -1) {
+                handleCircleRadius = radius * ((float) 1/10);
+            }
+            if (centerCircleColor == -1) {
+                centerCircleRadius = radius * ((float) 3/5);
+            }
 
-        float deg3 = Math.min(deg, max + 2);
+            circlePaint.setStrokeWidth(progressSecondaryStrokeWidth);
+            circlePaint.setStyle(Paint.Style.STROKE);
+            circlePaint2.setStrokeWidth(progressPrimaryStrokeWidth);
+            circlePaint2.setStyle(Paint.Style.STROKE);
+            linePaint.setStrokeWidth(indicatorWidth);
 
-        oval.set(midx - progressRadius, midy - progressRadius, midx + progressRadius, midy + progressRadius);
+            float deg3 = Math.min(deg, max + 2);
 
-        // canvas.drawArc(oval, (float) 90+startOffset, (float)sweepAngle, false, circlePaint);
-        // 시작점 수정 --> 90도에서 시작에서 270도로
-        canvas.drawArc(oval, (float) 270+startOffset, (float)sweepAngle, false, circlePaint);
+            oval.set(midx - progressRadius, midy - progressRadius, midx + progressRadius, midy + progressRadius);
 
-        // 시계 방향만 필요하므로
-        // progress bar의 회전 액션을 그릴 때 필요한 code
-        canvas.drawArc(oval, (float) 270+startOffset, ((deg3-2)*(sweepAngle / max)), false, circlePaint2);
+            // canvas.drawArc(oval, (float) 90+startOffset, (float)sweepAngle, false, circlePaint);
+            // 시작점 수정 --> 90도에서 시작에서 270도로
+            canvas.drawArc(oval, (float) 270+startOffset, (float)sweepAngle, false, circlePaint);
 
-        float tmp2 = ((float) startOffset / 360) + (((float) sweepAngle / 360) * ((deg-2)/(max))) * 2;
+            // 시계 방향만 필요하므로
+            // progress bar의 회전 액션을 그릴 때 필요한 code
+            canvas.drawArc(oval, (float) 270+startOffset, ((deg3-2)*(sweepAngle / max)), false, circlePaint2);
 
-        // 막대 크기 설정하기 위한 x1, x2, y1, y2
+            float tmp2 = ((float) startOffset / 360) + (((float) sweepAngle / 360) * ((deg-2)/(max))) * 2;
+
+            // 막대 크기 설정하기 위한 x1, x2, y1, y2
 //        float x1 = midx + (float) (radius * ((float) 2/5) * Math.sin(2 * Math.PI * (1.0 - tmp2)));
 //        float y1 = midy + (float) (radius * ((float) 2/5) * Math.cos(2 * Math.PI * (1.0 - tmp2)));
 //        float x2 = midx + (float) (radius * ((float) 3/5) * Math.sin(2 * Math.PI * (1.0 - tmp2)));
 //        float y2 = midy + (float) (radius * ((float) 3/5) * Math.cos(2 * Math.PI * (1.0 - tmp2)));
 
-        float x1 = midx + (float) (radius * ((float) 1/5) * Math.sin(Math.PI * (1.0 - tmp2)));
-        float y1 = midy + (float) (radius * ((float) 1/5) * Math.cos(Math.PI * (1.0 - tmp2)));
-        float x2 = midx + (float) (radius * Math.sin(Math.PI * (1.0 - tmp2)));
-        float y2 = midy + (float) (radius * Math.cos(Math.PI * (1.0 - tmp2)));
+            float x1 = midx + (float) (radius * ((float) 1/5) * Math.sin(Math.PI * (1.0 - tmp2)));
+            float y1 = midy + (float) (radius * ((float) 1/5) * Math.cos(Math.PI * (1.0 - tmp2)));
+            float x2 = midx + (float) (radius * Math.sin(Math.PI * (1.0 - tmp2)));
+            float y2 = midy + (float) (radius * Math.cos(Math.PI * (1.0 - tmp2)));
 
-        Log.e("temp2 : ", ""+tmp2);
-        Log.e("sin : ", ""+Math.sin(Math.PI * (1.0 - tmp2)));
-        Log.e("cos : ", ""+Math.cos(Math.PI * (1.0 - tmp2)));
+            Log.e("temp2 : ", ""+tmp2);
+            Log.e("sin : ", ""+Math.sin(Math.PI * (1.0 - tmp2)));
+            Log.e("cos : ", ""+Math.cos(Math.PI * (1.0 - tmp2)));
 
-        circlePaint.setStyle(Paint.Style.FILL);
+            circlePaint.setStyle(Paint.Style.FILL);
 
-        circlePaint.setColor(backCircleColor);
-        canvas.drawCircle(midx, midy, backCircleRadius, circlePaint);
+            circlePaint.setColor(backCircleColor);
+            canvas.drawCircle(midx, midy, backCircleRadius, circlePaint);
 
-        circlePaint.setColor((mainCircleColor));
-        canvas.drawCircle(midx, midy, mainCircleRadius, circlePaint);
+            circlePaint.setColor((mainCircleColor));
+            canvas.drawCircle(midx, midy, mainCircleRadius, circlePaint);
 
-        canvas.drawLine(x1, y1, x2, y2, linePaint);
+            canvas.drawLine(x1, y1, x2, y2, linePaint);
 
-        canvas.drawCircle(x2, y2, handleCircleRadius, handlePaint);
-        canvas.drawCircle(midx, midy, centerCircleRadius,centerPaint);
+            canvas.drawCircle(x2, y2, handleCircleRadius, handlePaint);
+            canvas.drawCircle(midx, midy, centerCircleRadius,centerPaint);
 
-        float move_size = Utils.getDistance(midx, midy, midx-centerCircleRadius, midy-centerCircleRadius);
-        move_size /= 2;
+            float move_size = Utils.getDistance(midx, midy, midx-centerCircleRadius, midy-centerCircleRadius);
+            move_size /= 2;
 
-        image1 = BitmapFactory.decodeResource(getResources(), R.drawable.seoul);
-        int bitmap_Size = (int)(centerCircleRadius);
-        Bitmap resize_bitmap = Bitmap.createScaledBitmap(image1, bitmap_Size, bitmap_Size, true);
-        canvas.drawBitmap(resize_bitmap, null, new Rect((int)(midx-move_size), (int)(midy-move_size), (int)(midx+move_size), (int)(midy+move_size)), null);
+            image1 = BitmapFactory.decodeResource(getResources(), R.drawable.seoul);
+            int bitmap_Size = (int)(centerCircleRadius);
+            Bitmap resize_bitmap = Bitmap.createScaledBitmap(image1, bitmap_Size, bitmap_Size, true);
+            canvas.drawBitmap(resize_bitmap, null, new Rect((int)(midx-move_size), (int)(midy-move_size), (int)(midx+move_size), (int)(midy+move_size)), null);
+        }
     }
 
     @Override
