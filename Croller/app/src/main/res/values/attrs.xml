@@ -39,6 +39,10 @@
         <attr name="progress_radius" format="float" />
         <attr name="anticlockwise" format="boolean" />
 
+        <attr name="handle_circle_color" format="color"/>
+        <attr name="handle_circle_radius" format="float"/>
         <attr name="center_image" format="reference|integer"/>
+        <attr name="center_circle_Color" format="color"/>
+        <attr name="center_circle_radius" format="float"/>
     </declare-styleable>
 </resources>
